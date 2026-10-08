@@ -1,4 +1,4 @@
-# CyberVANET: reproducible code for the ICSCNA 2026 paper
+# CyberVANET
 
 This repository regenerates **every number, table and figure** in the revised CyberVANET paper
 (`tex/main.tex`) and checks the paper's claims automatically. Nothing in the paper's results is typed by hand:
