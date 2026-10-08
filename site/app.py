@@ -5,13 +5,14 @@
     /formulas    step-by-step evaluation of Eqs. (2)-(8) and (11) for any link
 
 Both sites read the same /api/* endpoints, which read results/runs/*.json through metrics.per_run,
-the function that also generates the paper's tables.  python main.py site  ->  http://127.0.0.1:5000
+the function that also generates the paper's tables.  python main.py site  ->  http://127.0.0.1:5002 (override with the PORT environment variable)
 """
 import os, sys, json, time
 from flask import Flask, jsonify, request, render_template, Response, stream_with_context
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "cybervanet"))
 import core
+import export_csv
 
 app = Flask(__name__, template_folder=os.path.join(HERE, "templates"), static_folder=os.path.join(HERE, "static"))
 
@@ -61,6 +62,14 @@ def api_explain():
     a = request.args
     return jsonify(core.explain(float(a.get("d", 150)), int(float(a.get("n_obs", 0))), float(a.get("n_loc", 50)), float(a.get("v", 40)), a.get("weather", "clear")))
 
+@app.route("/api/export.csv")
+def export_csv_route():
+    """CSV telemetry: kind=runs (one row per run/protocol/weather) or kind=summary (mean and 95% CI over seeds)."""
+    kind = request.args.get("kind", "runs")
+    if kind not in ("runs", "summary"): return jsonify(error="kind must be runs or summary"), 400
+    text = export_csv.runs_csv() if kind == "runs" else export_csv.summary_csv()
+    return Response(text, mimetype="text/csv", headers={"Content-Disposition": f"attachment; filename=cybervanet_telemetry_{kind}.csv"})
+
 @app.route("/api/health")
 def health(): return jsonify(status="ok", backend="cybervanet/core.py", data="results/runs/*.json")
 @app.route("/api/meta")
@@ -68,9 +77,6 @@ def meta(): return jsonify(core.meta())
 @app.route("/api/metrics")
 def metrics():
     s, d, w, k = _args(); return jsonify(core.metrics(s, d, w, k))
-@app.route("/api/series")
-def series():
-    s, d, w, k = _args(); return jsonify(core.run_series(s, d, w, k))
 @app.route("/api/density")
 def density():
     """PDR/latency/goodput of one scenario across the three densities (for the density chart)."""

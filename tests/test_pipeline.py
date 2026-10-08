@@ -85,3 +85,36 @@ def test_all_scenarios_seeds_weathers_available():
     mt = core.meta()
     assert [s["id"] for s in mt["scenarios"]] == ["urban", "mixed", "vile_parle"]
     assert mt["seeds"] == [1, 2, 3, 4, 5, 6] and mt["weathers"] == ["clear", "rain", "fog"]
+
+
+@pytest.mark.skipif(not HAVE, reason="no results")
+def test_csv_export_matches_runs_and_summary():
+    """The CSV telemetry has one row per run/protocol/weather and agrees with the raw runs and with results/summary.json."""
+    import csv, io
+    import export_csv as X, metrics as M
+    rows = list(csv.DictReader(io.StringIO(X.runs_csv())))
+    assert len(rows) == sum(len(v) for v in M.runs.values()) * len(M.PROTOS) * len(M.WEATHERS)
+    r = next(r for r in rows if (r["scenario"], r["density"], r["seed"], r["protocol"], r["weather"]) == ("urban", "low", "1", "DSRC", "rain"))
+    j = next(j for j in M.runs[("urban", "2.0")] if j["seed"] == 1)
+    ref = M.per_run(j, "DSRC", "rain")
+    assert abs(float(r["pdr300_pct"]) - ref["pdr300"]) < 1e-5 and abs(float(r["goodput_mbps"]) - ref["goodput_mbps"]) < 1e-5
+    S = json.load(open(os.path.join(ROOT, "results", "summary.json")))["scenarios"]
+    srows = list(csv.DictReader(io.StringIO(X.summary_csv())))
+    assert len(srows) == 9 * len(M.PROTOS) * len(M.WEATHERS)
+    for s in srows:
+        if s["weather"] == "clear":
+            ref = S[s["scenario"]][s["density"]]["proto"][s["protocol"]]
+            assert abs(float(s["pdr300_pct_mean"]) - ref["pdr300"][0]) < 1e-5 and abs(float(s["pdr300_pct_ci95"]) - ref["pdr300"][1]) < 1e-5
+            assert abs(float(s["stability_score_mean"]) - ref["score"][0]) < 1e-5
+
+
+@pytest.mark.skipif(not HAVE, reason="no results")
+def test_csv_export_over_http():
+    sys.path.insert(0, os.path.join(ROOT, "site"))
+    import app as A
+    c = A.app.test_client()
+    for kind, n in (("runs", 486 + 1), ("summary", 81 + 1)):
+        r = c.get(f"/api/export.csv?kind={kind}")
+        assert r.status_code == 200 and r.mimetype == "text/csv" and "attachment" in r.headers["Content-Disposition"]
+        assert len(r.get_data(as_text=True).strip().split("\n")) == n
+    assert c.get("/api/export.csv?kind=bogus").status_code == 400

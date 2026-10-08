@@ -5,6 +5,7 @@
   traces      generate the 54 mobility traces (3 scenarios x 3 densities x 6 seeds) with SUMO/TraCI
   evaluate    run the communication model on every trace  -> results/runs/*.json
   aggregate   mean +/- 95% CI over seeds                  -> results/summary.json
+  export      per-run and summary telemetry as CSV            -> results/telemetry_*.csv
   figures     paper figures                               -> figs/ and tex/
   tables      LaTeX macros and tables                     -> tex/numbers.tex, tex/tab_*.tex
   verify      assert every claim made in the paper against results/summary.json
@@ -59,7 +60,7 @@ def do_evaluate(n, scns=SCEN, pers=PERIODS, seeds=SEEDS, tdir=None, rdir=None):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices="scenarios traces evaluate aggregate figures tables verify paper site all quick".split())
+    ap.add_argument("cmd", choices="scenarios traces evaluate aggregate export figures tables verify paper site all quick".split())
     ap.add_argument("-j", type=int, default=os.cpu_count() or 1)
     a = ap.parse_args()
     c = a.cmd
@@ -67,6 +68,7 @@ def main():
     elif c == "traces": do_traces(a.j)
     elif c == "evaluate": do_evaluate(a.j)
     elif c == "aggregate": py("aggregate.py")
+    elif c == "export": py("export_csv.py")
     elif c == "figures": py("make_figures.py")
     elif c == "tables": py("make_tex_data.py")
     elif c == "verify": py("verify_claims.py")
@@ -79,7 +81,7 @@ def main():
     elif c == "site": subprocess.run([sys.executable, os.path.join(ROOT, "site", "app.py")], check=True)
     elif c == "all":
         py("weather_coeffs.py"); py("scenario_stats.py")
-        do_traces(a.j); do_evaluate(a.j); py("aggregate.py"); py("make_figures.py"); py("make_tex_data.py"); py("verify_claims.py")
+        do_traces(a.j); do_evaluate(a.j); py("aggregate.py"); py("export_csv.py"); py("make_figures.py"); py("make_tex_data.py"); py("verify_claims.py")
     elif c == "quick":
         tmp = tempfile.mkdtemp(prefix="cybervanet_quick_")
         do_traces(a.j, ["urban"], ["1.0"], [1, 2], os.path.join(tmp, "traces"))

@@ -20,8 +20,9 @@ This repository regenerates **every number, table and figure** in the revised Cy
 pip install -r requirements.txt
 python main.py verify        # asserts all paper claims against the shipped results (seconds)
 python -m pytest tests -q    # unit + pipeline tests
-python main.py site          # http://127.0.0.1:5000  both web sites, one backend, no mock data
-python main.py quick         # under a minute: smoke test: SUMO -> traces -> model, 1 scenario x 2 seeds
+python main.py site          # http://127.0.0.1:5002  both web sites, one backend, no mock data
+python main.py export       # per-run and summary telemetry as CSV (results/telemetry_*.csv)
+python main.py quick         # about 3 minutes: smoke test: SUMO -> traces -> model, 1 scenario x 2 seeds
 python main.py all           # full re-run: 54 traces + 54 evaluations + figures + tables + verify (hours)
 python main.py paper         # recompile tex/main.pdf (pdflatex, bibtex, IEEEtran)
 ```
@@ -31,7 +32,7 @@ exactly (given the same SUMO version, 1.28.0 was used).
 
 ## The web site: CyberVANET | Research Command
 
-`python main.py site` serves http://127.0.0.1:5000 (no internet needed; Chart.js is bundled). The old mock-data
+`python main.py site` serves http://127.0.0.1:5002 (no internet needed; Chart.js is bundled). The old mock-data
 "VANET Protocol Comparison Dashboard" and the stand-alone engines it used are removed.
 
 | page | what it does |
@@ -49,6 +50,7 @@ There is exactly one implementation of the model. The live run executes `cyberva
 | `cybervanet/comm_model.py` | channel, reception, latency, obstruction counting, stability score (Eqs. 1-11) |
 | `cybervanet/gen_traces.py` | SUMO `randomTrips` + TraCI -> `traces/*.npz` |
 | `cybervanet/evaluate.py` | per-trace evaluation: PDR, latency, goodput, weather, score, relay experiment |
+| `cybervanet/export_csv.py` | telemetry CSV: `results/telemetry_runs.csv` (per run) and `results/telemetry_summary.csv` (mean +/- 95% CI); also served at `/api/export.csv?kind=runs\|summary` |
 | `cybervanet/aggregate.py` | mean +/- 95% CI (Student t, 6 seeds) -> `results/summary.json` |
 | `cybervanet/weather_coeffs.py` | ITU-R P.838-3 (rain, `itur`) and P.840 (fog) -> `results/weather_coeffs.json` |
 | `cybervanet/make_figures.py`, `make_tex_data.py` | figures, `numbers.tex`, tables |

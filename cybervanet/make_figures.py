@@ -39,7 +39,7 @@ axs[0].set_ylabel("PDR within 300 m (%)"); axs[0].legend(frameon=False, loc="low
 axs[0].set_ylim(0, 40)
 fig.tight_layout(pad=0.4); fig.savefig(os.path.join(F, "fig_density.pdf")); plt.close(fig)
 
-# Fig. 4: relay selection, relative gain over random selection (Vile Parle + mixed shown for all densities)
+# Fig. 4: relay selection, relative gain over random selection (urban grid and Vile Parle shown for all densities)
 fig, axs = plt.subplots(1, 2, figsize=(3.45, 2.3), sharey=True)
 for ax, scn in zip(axs, ("urban", "vile_parle")):
     w = 0.26
