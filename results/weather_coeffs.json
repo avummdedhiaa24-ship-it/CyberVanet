@@ -1,0 +1,19 @@
+{
+  "rain_rate_mm_h": 25.0,
+  "fog_liquid_water_g_m3": 0.5,
+  "temperature_K": 288.15,
+  "gamma_db_per_km": {
+    "5.9": {
+      "clear": 0.0,
+      "rain": 0.1093,
+      "fog": 0.0105,
+      "Kl": 0.021
+    },
+    "28.0": {
+      "clear": 0.0,
+      "rain": 4.6236,
+      "fog": 0.2298,
+      "Kl": 0.4595
+    }
+  }
+}

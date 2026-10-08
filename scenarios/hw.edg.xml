@@ -1,0 +1,6 @@
+<edges>
+  <edge id="conn_out" from="E2" to="H0" numLanes="1" speed="13.89"/>
+  <edge id="conn_in"  from="H0" to="E2" numLanes="1" speed="13.89"/>
+  <edge id="hw_out"   from="H0" to="H1" numLanes="2" speed="30.0"/>
+  <edge id="hw_in"    from="H1" to="H0" numLanes="2" speed="30.0"/>
+</edges>

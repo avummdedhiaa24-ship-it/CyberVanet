@@ -1,0 +1,41 @@
+{
+ "urban": {
+  "width_m": 1050,
+  "height_m": 1050,
+  "edges": 224,
+  "road_km": 30.4,
+  "junctions": 64,
+  "tls": 0,
+  "speed_limits_kmh": [
+   50,
+   50
+  ],
+  "mean_speed_kmh": 42.5
+ },
+ "mixed": {
+  "width_m": 3800,
+  "height_m": 600,
+  "edges": 84,
+  "road_km": 17.3,
+  "junctions": 27,
+  "tls": 0,
+  "speed_limits_kmh": [
+   50,
+   108
+  ],
+  "mean_speed_kmh": 50.3
+ },
+ "vile_parle": {
+  "width_m": 2709,
+  "height_m": 1766,
+  "edges": 1961,
+  "road_km": 150.1,
+  "junctions": 900,
+  "tls": 19,
+  "speed_limits_kmh": [
+   5,
+   160
+  ],
+  "mean_speed_kmh": 38.3
+ }
+}

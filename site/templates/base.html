@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CyberVANET | {% block title %}{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="/static/chart.umd.js"></script></head><body>
+<header><h1>CyberVANET | Research Command &middot; {% block h %}{% endblock %}</h1>
+<nav><a href="/" class="{{ 'on' if page=='live' }}">Live Run</a><a href="/analytics" class="{{ 'on' if page=='analytics' }}">Results (6 seeds)</a><a href="/formulas" class="{{ 'on' if page=='formulas' }}">Formulas</a></nav>
+<div class="bar">
+ <label>Scenario<select id="c-scn"></select></label><label>Traffic density<select id="c-den"></select></label>
+ <label>Seed<select id="c-seed"></select></label><label>Weather<select id="c-wx"></select></label>
+ {% block bar %}{% endblock %}<span id="cfg" class="pill"></span></div></header>
+<main>{% block body %}{% endblock %}</main>
+<script>
+// ---- shared state: identical on every page (kept in the URL and localStorage) ----
+const COL={'DSRC':'#00f2ff','C-V2X':'#39ff14','5G-V2X':'#bc13fe'}, PROTOS=['DSRC','C-V2X','5G-V2X'];
+const Ctl={scenario:'vile_parle',density:'medium',seed:'mean',weather:'clear',meta:null,
+ q(){return new URLSearchParams({scenario:this.scenario,density:this.density,seed:this.seed,weather:this.weather}).toString()},
+ save(){const u=new URL(location);for(const k of['scenario','density','seed','weather'])u.searchParams.set(k,this[k]);history.replaceState(null,'',u);
+  try{localStorage.setItem('cv_ctl',JSON.stringify({scenario:this.scenario,density:this.density,seed:this.seed,weather:this.weather}))}catch(e){}
+  document.getElementById('cfg').textContent=`${this.scenario} · ${this.density} · seed ${this.seed==='mean'?'mean of all':this.seed} · ${this.weather}`;
+  for(const a of document.querySelectorAll('nav a'))a.href=a.pathname+'?'+this.q()}};
+async function api(path,extra=''){const r=await fetch(path+'?'+Ctl.q()+extra);const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j}
+const f=(x,n=1)=>(x===null||x===undefined||isNaN(x))?'–':Number(x).toFixed(n);
+function stepsHTML(ex){return PROTOS.map(p=>{const e=ex[p];return `<div class="card"><h3 style="color:${COL[p]}">${p}</h3><table><tr><th>Eq.</th><th>Quantity</th><th>Formula</th><th>Value</th></tr>`+
+ e.steps.map(s=>`<tr><td>(${s.eq})</td><td style="text-align:left">${s.name}</td><td style="text-align:left" class="dim">${s.expr}</td><td><b>${Math.abs(s.value)<1e-3&&s.value!==0?s.value.toExponential(2):f(s.value,s.value<1&&s.value>-1?4:2)}</b> ${s.unit}</td></tr>`).join('')+
+ `</table><div class="row"><span>P<sub>rx</sub></span><b>${f(e.p_rx,4)}</b></div><div class="row"><span>Latency</span><b>${f(e.latency_ms,3)} ms</b></div><div class="row"><span>Stability score</span><b>${f(e.score,2)}</b></div></div>`}).join('')}
+async function initCtl(onChange,opts={}){
+ Ctl.meta=await (await fetch('/api/meta')).json();const M=Ctl.meta;
+ try{Object.assign(Ctl,JSON.parse(localStorage.getItem('cv_ctl')||'{}'))}catch(e){}
+ const u=new URLSearchParams(location.search);for(const k of['scenario','density','seed','weather'])if(u.get(k))Ctl[k]=u.get(k);
+ const fill=(id,opts,key)=>{const s=document.getElementById(id);s.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');s.value=Ctl[key];if(s.value!==Ctl[key]){s.selectedIndex=0;Ctl[key]=s.value}
+  s.onchange=()=>{Ctl[key]=s.value;Ctl.save();onChange()}};
+ fill('c-scn',M.scenarios.map(s=>[s.id,s.label]),'scenario');fill('c-den',M.densities.map(d=>[d,d]),'density');
+ if(opts.noMean&&Ctl.seed==='mean')Ctl.seed='1';
+ fill('c-seed',[...(opts.noMean?[]:[['mean',`mean of ${M.seeds.length} seeds (± 95% CI)`]]),...M.seeds.map(s=>['' + s,'seed '+s])],'seed');
+ fill('c-wx',M.weathers.map(w=>[w,w+(w==='rain'?' (25 mm/h)':w==='fog'?' (0.5 g/m³)':'')]),'weather');
+ Ctl.save();onChange()}
+</script>{% block script %}{% endblock %}</body></html>

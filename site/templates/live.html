@@ -1,0 +1,60 @@
+{% extends "base.html" %}{% block title %}Live Run{% endblock %}{% block h %}LIVE RUN{% endblock %}
+{% block bar %}<label>Speed<select id="spd"><option value="1">1 s/s</option><option value="2">2 s/s</option><option value="5" selected>5 s/s</option><option value="20">20 s/s</option><option value="100000">max</option></select></label>
+<button class="pri" id="run">▶ Run simulation</button><button id="stop">■ Stop</button>{% endblock %}
+{% block body %}
+<p class="dim">The server reads the SUMO trace of the selected scenario (vehicle positions and speeds, 1 Hz) and, for every second after the 60 s warm-up, evaluates the paper's model: neighbor links, obstruction count, path loss, weather attenuation, signal strength, reception probability, latency, stability score, PDR and goodput (Eqs. 1–11) for DSRC, C-V2X and 5G-V2X, plus the relay-selection experiment. It is the same code that produced the paper's tables, so the final values equal the paper's.</p>
+<div id="wxb" class="card" style="display:none;margin-bottom:12px;border-color:#ff6400"></div>
+<div class="grid2" style="grid-template-columns:1.25fr 1fr">
+ <div class="card"><div style="display:flex;justify-content:space-between"><h3 style="margin:0">Network map</h3><span class="dim" id="mapinfo">idle</span></div><canvas id="map" width="900" height="560" style="width:100%;background:#07070d;border-radius:10px;margin-top:8px"></canvas>
+  <div class="dim" style="margin-top:6px">dots = vehicles, coloured by speed (slow → fast); grey = roads</div></div>
+ <div class="card"><h3>Run status</h3><div class="row"><span>Simulated time</span><b id="s-t">–</b></div><div class="row"><span>Active vehicles</span><b id="s-n">–</b></div><div class="row"><span>Neighbor links ≤ 300 m (directed)</span><b id="s-l">–</b></div>
+  <div class="row"><span>Mean distance of those links</span><b id="s-d">–</b></div><div class="row"><span>Mean obstructing vehicles per link</span><b id="s-o">–</b></div><div class="row"><span>Mean N<sub>loc</sub></span><b id="s-nl">–</b></div>
+  <h3 style="margin-top:14px">Cumulative PDR≤300 m by weather</h3><div id="wt"></div></div></div>
+<div class="grid3" id="cols" style="margin-top:16px"></div>
+<div class="grid2" style="margin-top:16px"><div class="card"><h3>Relay selection (cumulative end-to-end delivery, %)</h3><div class="chart tall"><canvas id="relay"></canvas></div></div>
+ <div class="card"><h3>Final check against the paper's run</h3><div id="final" class="dim">available when the run finishes</div></div></div>
+<div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Formula inspector: Eqs. (2)–(8), (11) at the current averages</h3><button id="insp">Refresh</button></div><div class="grid3" id="steps" style="margin-top:10px"></div></div>
+{% endblock %}
+{% block script %}<script>
+let ES=null,charts={},geom=null,lastInfo=null,relayChart=null;
+const MET=[['pdr','PDR ≤300 m (%)','inst_pdr'],['lat','Latency (ms)','inst_latency'],['sta','Stability score','inst_stability']];
+function build(){const c=document.getElementById('cols');c.innerHTML='';charts={};
+ PROTOS.forEach(p=>{const id=p.replace('-','');const d=document.createElement('div');d.className='card';
+  d.innerHTML=`<h3 style="color:${COL[p]}">${p}</h3>`+MET.map(m=>`<div class="dim">${m[1]} <span class="dim">(5-s moving average)</span></div><div class="chart"><canvas id="${m[0]}-${id}"></canvas></div>`).join('')+
+  ['pdr:PDR ≤300 m (cum.):%:2','lat:Latency (cum.): ms:2','sta:Stability score (cum.)::1','gp:Goodput, own range (cum.): Mbit/s:3','loss:Packet loss ≤300 m (cum.):%:2','own:PDR own range (cum.):%:2'].map(s=>{const[a,b,u]=s.split(':');return `<div class="row"><span>${b}</span><b id="v-${a}-${id}">–</b></div>`}).join('');
+  c.appendChild(d);MET.forEach(m=>{charts[m[0]+p]=new Chart(document.getElementById(`${m[0]}-${id}`),{type:'line',data:{labels:[],datasets:[{data:[],_raw:[],borderColor:COL[p],backgroundColor:COL[p]+'22',fill:true,pointRadius:0,borderWidth:2,tension:.3}]},
+   options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.06)'},ticks:{color:'#777'}}}}})})});
+ if(relayChart)relayChart.destroy();relayChart=new Chart(document.getElementById('relay'),{type:'bar',data:{labels:['random','greedy-geographic','stability-aware','oracle'],datasets:PROTOS.map(p=>({label:p,backgroundColor:COL[p],data:[0,0,0,0]}))},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{labels:{color:'#ccc'}}},scales:{x:{ticks:{color:'#888'}},y:{beginAtZero:true,ticks:{color:'#888'},grid:{color:'rgba(255,255,255,.07)'}}}}})}
+async function loadGeom(){geom=await (await fetch('/static/geom/'+Ctl.scenario+'.json')).json()}
+function drawMap(veh){const cv=document.getElementById('map'),g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);if(!geom)return;
+ const[b0,b1,b2,b3]=geom.bbox,W=cv.width,H=cv.height,pad=20,sc=Math.min((W-2*pad)/(b2-b0||1),(H-2*pad)/(b3-b1||1)),ox=pad+((W-2*pad)-(b2-b0)*sc)/2,oy=H-pad-((H-2*pad)-(b3-b1)*sc)/2;
+ const X=x=>ox+(x-b0)*sc,Y=y=>oy-(y-b1)*sc;g.strokeStyle='#2a2a3a';g.lineWidth=1;
+ for(const e of geom.edges){g.beginPath();g.moveTo(X(e[0]),Y(e[1]));for(let k=2;k<e.length;k+=2)g.lineTo(X(e[k]),Y(e[k+1]));g.stroke()}
+ for(const v of veh){const s=Math.min(1,v[2]/20);g.fillStyle=`hsl(${s*120},95%,55%)`;g.beginPath();g.arc(X(v[0]),Y(v[1]),3,0,6.3);g.fill()}}
+function handle(ev){
+ if(ev.type==='start'){document.getElementById('mapinfo').textContent=`running · ${ev.scenario}/${ev.density}/seed ${ev.seed}/${ev.weather}`;document.getElementById('final').innerHTML='<span class="dim">running…</span>';return}
+ if(ev.type==='error'){document.getElementById('mapinfo').textContent='error: '+ev.message;stopRun();return}
+ if(ev.type==='done'){document.getElementById('mapinfo').textContent='finished';stopRun(true);
+  let h=`<div class="${ev.identical?'ok':'bad'}" style="font-size:1.05rem"><b>${ev.identical?'✓ identical':'✗ differs'}</b> to the stored run behind the paper tables (max |difference| = ${ev.max_abs_difference_vs_paper_run.toExponential(1)})</div><table><tr><th>Protocol</th><th>PDR≤300 m</th><th>Latency ms</th><th>Stability</th><th>Goodput Mbit/s</th></tr>`;
+  PROTOS.forEach(p=>{const x=ev.final[p];h+=`<tr><td style="color:${COL[p]}">${p}</td><td>${f(x.pdr300,2)}</td><td>${f(x.lat300,2)}</td><td>${f(x.score,1)}</td><td>${f(x.goodput_mbps,3)}</td></tr>`});
+  document.getElementById('final').innerHTML=h+'</table><p class="dim">Mean ± 95% CI over the six seeds is on the Results page.</p>';return}
+ // snapshot
+ const I=ev.info;lastInfo=I;drawMap(ev.vehicles);
+ set('s-t',ev.t+' s');set('s-n',I.n);set('s-l',I.links300);set('s-d',f(I.mean_d300,1)+' m');set('s-o',f(I.mean_obs300,2));set('s-nl',f(I.mean_nloc300,1));
+ document.getElementById('wt').innerHTML='<table><tr><th></th>'+Ctl.meta.weathers.map(w=>`<th>${w}</th>`).join('')+'</tr>'+PROTOS.map(p=>`<tr><td style="color:${COL[p]}">${p}</td>`+Ctl.meta.weathers.map(w=>`<td>${f(ev.weather_table[p][w],2)}</td>`).join('')+'</tr>').join('')+'</table>';
+ PROTOS.forEach(p=>{const id=p.replace('-',''),P=ev.protocols[p];
+  [['pdr','inst_pdr'],['lat','inst_latency'],['sta','inst_stability']].forEach(([k,src])=>{const ch=charts[k+p],ds=ch.data.datasets[0];ds._raw.push(P[src]??0);const w=ds._raw.slice(-5);ch.data.labels.push(ev.t);ds.data.push(w.reduce((a,b)=>a+b,0)/w.length);ch.update('none')});
+  set('v-pdr-'+id,f(P.pdr,2)+'%');set('v-lat-'+id,f(P.latency,2)+' ms');set('v-sta-'+id,f(P.stability,1));set('v-gp-'+id,f(P.goodput_mbps,3)+' Mbit/s');set('v-loss-'+id,f(P.loss,2)+'%');set('v-own-'+id,f(P.pdr_own,2)+'%');
+  const R=ev.relay[p];if(R)relayChart.data.datasets[PROTOS.indexOf(p)].data=[R.random,R.greedy,R.stability_default,R.oracle]});relayChart.update('none');
+ if(ev.t%10===0)inspect()}
+const set=(id,v)=>{document.getElementById(id).textContent=v};
+async function inspect(){if(!lastInfo)return;const q=new URLSearchParams({d:lastInfo.mean_d300,n_obs:Math.round(lastInfo.mean_obs300),n_loc:lastInfo.mean_nloc300,v:lastInfo.mean_v300,weather:Ctl.weather});
+ document.getElementById('steps').innerHTML=stepsHTML(await (await fetch('/api/explain?'+q)).json())}
+function stopRun(done){if(ES){ES.close();ES=null}document.getElementById('run').disabled=false;if(!done)document.getElementById('mapinfo').textContent='stopped'}
+async function start(){stopRun(true);build();lastInfo=null;await loadGeom();drawMap([]);
+ const wb=document.getElementById('wxb');if(Ctl.weather!=='clear'){const g=Ctl.meta.weather_coeffs.gamma_db_per_km;wb.style.display='block';wb.innerHTML=`⚠ WEATHER: ${Ctl.weather.toUpperCase()} — ITU-R specific attenuation ${g['5.9'][Ctl.weather]} dB/km at 5.9 GHz (DSRC, C-V2X) and ${g['28.0'][Ctl.weather]} dB/km at 28 GHz (5G-V2X), Eq. (4)`}else wb.style.display='none';
+ document.getElementById('run').disabled=true;ES=new EventSource('/api/live?'+Ctl.q()+'&speed='+document.getElementById('spd').value);
+ ES.onmessage=m=>handle(JSON.parse(m.data));ES.onerror=()=>{if(ES&&ES.readyState===2)stopRun()}}
+document.getElementById('run').onclick=start;document.getElementById('stop').onclick=()=>stopRun();document.getElementById('insp').onclick=inspect;
+initCtl(()=>{if(ES)stopRun();loadGeom().then(()=>drawMap([]))},{noMean:true});build();
+</script>{% endblock %}

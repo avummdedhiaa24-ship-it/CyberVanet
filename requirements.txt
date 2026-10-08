@@ -1,0 +1,10 @@
+numpy>=1.24
+scipy>=1.10
+pandas>=2.0
+matplotlib>=3.7
+eclipse-sumo>=1.20     # provides sumo, netgenerate, netconvert, randomTrips.py
+traci>=1.20
+sumolib>=1.20
+itur>=0.4              # ITU-R P.838-3 rain coefficients (weather_coeffs.py)
+flask>=3.0             # dashboard server only
+pytest>=7              # tests only

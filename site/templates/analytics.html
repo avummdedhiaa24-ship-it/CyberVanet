@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block title %}Analytics{% endblock %}{% block h %}ANALYTICS{% endblock %}
+{% block body %}
+<div class="grid3" id="cards"></div>
+<div class="grid2" style="margin-top:16px"><div class="card"><h3>PDR vs distance (clear weather)</h3><div class="chart tall"><canvas id="ch-dist"></canvas></div></div>
+<div class="card"><h3>PDR≤300 m vs traffic density</h3><div class="chart tall"><canvas id="ch-den"></canvas></div></div></div>
+<div class="grid2" style="margin-top:16px"><div class="card"><h3>Weather impact (selected scenario, density, seed)</h3><div class="chart tall"><canvas id="ch-wx"></canvas></div></div>
+<div class="card"><h3>Relay selection: end-to-end delivery (%)</h3><div class="chart tall"><canvas id="ch-rel"></canvas></div></div></div>
+<div class="card" style="margin-top:16px"><h3>All protocols, selected configuration</h3><div id="tbl"></div><p class="dim" id="note"></p></div>
+{% endblock %}
+{% block script %}<script>
+let CH={};function mk(id,cfg){if(CH[id])CH[id].destroy();CH[id]=new Chart(document.getElementById(id),cfg)}
+const opt=(y)=>({responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{labels:{color:'#ccc'}}},scales:{x:{ticks:{color:'#888'},grid:{color:'rgba(255,255,255,.05)'}},y:{beginAtZero:true,title:{display:true,text:y,color:'#999'},ticks:{color:'#888'},grid:{color:'rgba(255,255,255,.07)'}}}});
+const ci=(x)=>Ctl.seed==='mean'?` ± ${f(x.ci95,2)}`:'';
+async function draw(){
+ const [m,den,clear]=await Promise.all([api('/api/metrics'),api('/api/density'),fetch('/api/metrics?'+new URLSearchParams({scenario:Ctl.scenario,density:Ctl.density,seed:Ctl.seed,weather:'clear'})).then(r=>r.json())]);
+ document.getElementById('cards').innerHTML=PROTOS.map(p=>{const P=m.protocols[p];return `<div class="card"><h3 style="color:${COL[p]}">${p}</h3>
+  <div class="row"><span>PDR ≤300 m</span><b>${f(P.pdr300.mean,2)}%${ci(P.pdr300)}</b></div><div class="row"><span>PDR own range (${P.range_m} m)</span><b>${f(P.pdr_own.mean,2)}%</b></div>
+  <div class="row"><span>Latency</span><b>${f(P.lat300.mean,2)} ms${ci(P.lat300)}</b></div><div class="row"><span>Goodput (own range)</span><b>${f(P.goodput_mbps.mean,3)} Mbit/s</b></div>
+  <div class="row"><span>Stability score</span><b>${f(P.score.mean,1)}</b></div><div class="row"><span>Pair-based PDR (legacy)</span><b>${f(P.legacy_pdr.mean,2)}%</b></div></div>`}).join('');
+ mk('ch-dist',{type:'line',data:{datasets:PROTOS.map(p=>({label:p,borderColor:COL[p],backgroundColor:COL[p],pointRadius:2,borderWidth:2,data:clear.protocols[p].pdr_vs_dist.map(o=>({x:o.d,y:o.pdr}))}))},options:{...opt('PDR (%)'),scales:{...opt('PDR (%)').scales,x:{type:'linear',title:{display:true,text:'distance (m)',color:'#999'},ticks:{color:'#888'},grid:{color:'rgba(255,255,255,.05)'}}}}});
+ mk('ch-den',{type:'bar',data:{labels:['low','medium','high'].map(d=>`${d} (${f(den[d].mean_active_vehicles,0)} veh)`),datasets:PROTOS.map(p=>({label:p,backgroundColor:COL[p],data:['low','medium','high'].map(d=>den[d].protocols[p].pdr300.mean)}))},options:opt('PDR≤300 m (%)')});
+ const w=await Promise.all(Ctl.meta.weathers.map(x=>fetch('/api/metrics?'+new URLSearchParams({scenario:Ctl.scenario,density:Ctl.density,seed:Ctl.seed,weather:x})).then(r=>r.json())));
+ mk('ch-wx',{type:'bar',data:{labels:Ctl.meta.weathers,datasets:PROTOS.map(p=>({label:p+' (own range)',backgroundColor:COL[p],data:w.map(o=>o.protocols[p].pdr_own.mean)}))},options:opt('PDR own range (%)')});
+ const R=['random','greedy','stability_default','oracle'];
+ mk('ch-rel',{type:'bar',data:{labels:R.map(r=>r.replace('_default','-aware')),datasets:PROTOS.map(p=>({label:p,backgroundColor:COL[p],data:R.map(r=>m.protocols[p].relay[r])}))},options:opt('end-to-end delivery (%)')});
+ let t='<table><tr><th>Protocol</th><th>PDR≤300 m</th><th>PDR own range</th><th>Loss≤300 m</th><th>Latency ms</th><th>Goodput Mbit/s</th><th>Stability</th><th>Relay gain vs random</th></tr>';
+ PROTOS.forEach(p=>{const P=m.protocols[p];t+=`<tr><td style="color:${COL[p]}">${p}</td><td>${f(P.pdr300.mean,2)}</td><td>${f(P.pdr_own.mean,2)}</td><td>${f(P.loss300.mean,2)}</td><td>${f(P.lat300.mean,2)}</td><td>${f(P.goodput_mbps.mean,3)}</td><td>${f(P.score.mean,1)}</td><td>${f(P.relay.gain_vs_random_pct,1)}%</td></tr>`});
+ document.getElementById('tbl').innerHTML=t+'</table>';
+ document.getElementById('note').textContent='Mean active vehicles: '+f(m.mean_active_vehicles,0)+' · runs averaged: '+m.n_runs+'. PDR is a relative link-quality index of the paper\'s abstract channel model, not a field prediction.'}
+initCtl(draw);
+</script>{% endblock %}

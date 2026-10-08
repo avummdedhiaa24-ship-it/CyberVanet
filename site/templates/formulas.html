@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Formulas{% endblock %}{% block h %}FORMULAS{% endblock %}
+{% block bar %}<label>Distance d (m)<input id="i-d" type="number" value="150" min="1" max="1000" style="width:90px"></label>
+<label>Obstructing vehicles N<sub>obs</sub><input id="i-o" type="number" value="0" min="0" max="10" style="width:70px"></label>
+<label>Vehicles within 300 m N<sub>loc</sub><input id="i-n" type="number" value="50" min="0" max="400" style="width:90px"></label>
+<label>Speed v (km/h)<input id="i-v" type="number" value="40" min="0" max="200" style="width:80px"></label><button class="pri" id="go">Evaluate</button>{% endblock %}
+{% block body %}
+<p class="dim">Every intermediate value of the paper's channel model for one link, computed by <code>comm_model.explain_link</code> (which is tested to equal the vectorized <code>link_model</code> used in all simulations). Scenario, density and seed are not used here; the weather selection is.</p>
+<div class="grid3" id="out"></div>
+{% endblock %}
+{% block script %}<script>
+async function run(){const q=new URLSearchParams({d:i('d'),n_obs:i('o'),n_loc:i('n'),v:i('v'),weather:Ctl.weather});
+ document.getElementById('out').innerHTML=stepsHTML(await (await fetch('/api/explain?'+q)).json())}
+const i=k=>document.getElementById('i-'+k).value;document.getElementById('go').onclick=run;
+const u=new URLSearchParams(location.search);for(const[k,id]of[['d','d'],['n_obs','o'],['n_loc','n'],['v','v']])if(u.get(k))document.getElementById('i-'+id).value=u.get(k);
+initCtl(run);
+</script>{% endblock %}
