@@ -33,3 +33,13 @@ Thumbs.db
 
 # Backup archive (traces are committed uncompressed in traces/)
 CyberVANET_traces.zip
+
+# LaTeX intermediate build files
+*.aux
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
