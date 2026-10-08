@@ -51,6 +51,8 @@ Mumbai, India\\
 arjun.jaiswal@djsce.ac.in}
 }
 
+
+
 \maketitle
 
 \begin{abstract}
@@ -62,14 +64,14 @@ CyberVANET, Vehicular Ad-Hoc Networks, SUMO, TraCI, DSRC, C-V2X, 5G-V2X, Protoco
 \end{IEEEkeywords}
 
 \section{Introduction}
-The rapid evolution of Intelligent Transportation Systems (ITS) has transformed vehicular communication by enabling continuous interaction among vehicles, roadside infrastructure, and traffic management systems. Vehicular Ad-Hoc Networks (VANETs) are an important communication foundation for ITS, supporting V2V and V2I communication for collision avoidance, cooperative driving, emergency message dissemination, and intelligent traffic control~\cite{hartenstein2008,souri2024,pawar2024}.
+ The rapid evolution of Intelligent Transportation Systems (ITS) has transformed vehicular communication by enabling continuous interaction among vehicles, roadside infrastructure, and traffic management systems. Vehicular Ad-Hoc Networks (VANETs) are an important communication foundation for ITS, supporting V2V and V2I communication for collision avoidance, cooperative driving, emergency message dissemination, and intelligent traffic control~\cite{hartenstein2008,souri2024,pawar2024}.
 
 Communication within VANETs remains challenging because of rapidly changing topology, high vehicle mobility, varying traffic density, urban obstacles, and wireless channel variability~\cite{souri2024,chatterjee2022}. Evaluating vehicular communication technologies under realistic traffic conditions has therefore become an essential research problem. However, many simulation studies rely on synthetic mobility models or simplified road layouts, which may not represent real urban traffic behavior~\cite{loor2024,morales2024}.
 
 Recent advancements have introduced multiple V2X technologies, including DSRC, C-V2X, and 5G-V2X~\cite{pawar2024,3gpp36885,moradi2023,hwang2023,baccari2025}, each with different trade-offs in range, latency, reliability, bandwidth, and deployment requirements. Empirical and survey studies stress the importance of comparing these technologies under comparable communication and mobility conditions~\cite{souri2024,moradi2023,baccari2025}. Comparatively few studies, however, provide a unified and reproducible framework that benchmarks several technologies under identical simulation conditions.
 
 To address this gap, this paper presents CyberVANET, a modular framework built on SUMO and TraCI~\cite{lopez2018,wegener2008}. It combines microscopic traffic simulation, a stability-aware relay-selection component, protocol benchmarking, telemetry, and visualization within one architecture, and evaluates DSRC, C-V2X, and 5G-V2X on synthetic scenarios and on a real-world OpenStreetMap road network~\cite{osm}. Separating the communication layer from the mobility layer ensures that every technology experiences the same vehicle traces.
-
+ 
 \subsection{Major Contributions}
 \begin{itemize}
 \item A modular SUMO--TraCI framework for reproducible benchmarking of DSRC, C-V2X, and 5G-V2X under identical traffic scenarios, mobility traces, and channel assumptions.
@@ -77,7 +79,8 @@ To address this gap, this paper presents CyberVANET, a modular framework built o
 \item A stability-aware forwarding component, defined as a normalized link-ranking function, and its component-level evaluation for relay selection against random, greedy-geographic, and oracle baselines. It is a framework component, not a new routing protocol.
 \item A multi-scenario evaluation (three scenarios, three traffic densities, \nSeeds{} seeds, three weather conditions) with confidence intervals, plus an integrated telemetry and visualization dashboard.
 \end{itemize}
-
+ 
+ 
 \section{Related Work}
 \subsection{Routing Protocols for VANETs}
 Early VANET research concentrated on topology-based routing protocols such as AODV~\cite{perkins1999} and DSR~\cite{johnson2007}, which establish routes from network connectivity. They perform well in conventional mobile ad hoc networks but can degrade in highly dynamic vehicular environments because of frequent topology changes and link instability~\cite{chatterjee2022,wang2025}.
@@ -111,20 +114,20 @@ CyberVANET (this work) & \checkmark & \checkmark & \checkmark & \checkmark & \ch
 \bottomrule
 \end{tabular}
 \end{table}
-
+ 
 \section{CyberVANET Framework}
 \subsection{Framework Overview and Architecture}
-CyberVANET is a modular experimentation framework with five components: the mobility simulation engine, the communication engine, the stability-aware forwarding component, the telemetry engine, and the visualization layer (Fig.~\ref{fig:arch}). SUMO generates vehicle mobility on OpenStreetMap or synthetic road networks, and TraCI exposes vehicle position, speed, heading, and lane state at run time~\cite{lopez2018,wegener2008}. The communication engine applies the channel and protocol models of Section~\ref{sec:models} to the same mobility trace for DSRC, C-V2X, and 5G-V2X, so that differences between technologies cannot be caused by differences in traffic.
+CyberVANET is a modular experimentation framework with five components: the mobility simulation engine, the communication engine, the stability-aware forwarding component, the telemetry engine, and the visualization layer (Fig.~\ref{fig:arch}). SUMO generates vehicle mobility on OpenStreetMap or synthetic road networks, and TraCI is used to sample each vehicle's identity, position, and speed once per second~\cite{lopez2018,wegener2008}. The communication engine applies the channel and protocol models of Section~\ref{sec:models} to the same mobility trace for DSRC, C-V2X, and 5G-V2X, so that differences between technologies cannot be caused by differences in traffic.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig_arch.png}
-\caption{Architecture of the CyberVANET framework. OpenStreetMap or synthetic networks feed SUMO, TraCI exposes vehicle state to the framework modules, and the protocol evaluation engine compares DSRC, C-V2X, and 5G-V2X under identical traffic.}
-\label{fig:arch}
-\end{figure}
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{fig_arch.png}
+    \caption{Architecture of the CyberVANET framework. OpenStreetMap or synthetic networks feed SUMO, TraCI samples vehicle state for the framework modules, and the protocol evaluation engine compares DSRC, C-V2X, and 5G-V2X under identical traffic.}
+    \label{fig:arch}
+\end{figure*}
 
 \subsection{Mobility Model}
-Vehicle mobility is produced by SUMO, which simulates car-following, lane changing, junction priority, and traffic signals where the network defines them~\cite{lopez2018}. TraCI synchronizes position, speed, and lane occupancy, from which the communication engine derives neighbor sets, local vehicle counts, and obstruction counts (Section~\ref{sec:models}).
+Vehicle mobility is produced by SUMO, which simulates car-following, lane changing, junction priority, and traffic signals where the network defines them~\cite{lopez2018}. TraCI samples vehicle position and speed, from which the communication engine derives neighbor sets, local vehicle counts, and obstruction counts (Section~\ref{sec:models}).
 
 \subsection{Communication Engine}
 The communication engine evaluates broadcast beacons (basic safety messages, 300~B) between vehicles within range. All three technologies share the mobility trace and the common channel abstraction; they differ only in carrier frequency, range, reliability constant, protocol delay, and the protocol-specific enhancements listed in Table~\ref{tab:params}.
@@ -135,7 +138,8 @@ The stability-aware forwarding component ranks neighboring vehicles with a compo
 
 \subsection{Telemetry and Visualization}
 The telemetry engine records per-run PDR, latency, goodput, packet loss, and the stability score in JSON and CSV files. An interactive dashboard supports live monitoring and post-simulation comparison across protocols and scenarios.
-
+ 
+ 
 \section{Communication and Performance Models}
 \label{sec:models}
 \subsection{Neighbor Model}
@@ -164,7 +168,7 @@ Weather adds a distance-proportional attenuation,
 PL_\mathrm{wx}=\gamma(f,w)\,\frac{d}{1000},
 \label{eq:wx}
 \end{equation}
-where $\gamma$ is the specific attenuation in dB/km. For rain, $\gamma=kR_r^{\alpha}$ is taken from ITU-R P.838-3~\cite{itu838} at rain rate $R_r=\rainRate$~mm/h (heavy rain). For fog, $\gamma=K_l M$ follows ITU-R P.840~\cite{itu840} with liquid water density $M=\fogM$~g/m$^3$ (dense fog, visibility of about 50~m) at 15$^\circ$C. The resulting values are listed in Table~\ref{tab:params}. The total loss is
+where $\gamma$ is the specific attenuation in dB/km. For rain, $\gamma=kR_r^{\alpha}$ is taken from ITU-R P.838-3~\cite{itu838} (horizontal polarization, $0^\circ$ elevation) at rain rate $R_r=\rainRate$~mm/h (heavy rain). For fog, $\gamma=K_l M$ follows ITU-R P.840~\cite{itu840} with liquid water density $M=\fogM$~g/m$^3$ (dense fog, visibility of about 50~m) at 15$^\circ$C. The resulting values are listed in Table~\ref{tab:params}. The total loss is
 \begin{equation}
 PL_\mathrm{tot}=PL_\mathrm{FS}+PL_\mathrm{obs}+PL_\mathrm{wx}.
 \label{eq:pltot}
@@ -236,26 +240,31 @@ For a link $i\to j$ of protocol $p$ the score combines four terms normalized to 
 \label{eq:score}
 \end{equation}
 each clipped to $[0,1]$. In Eq.~\eqref{eq:score}, $d$ is the transmitter--receiver distance (Eq.~\eqref{eq:dist}), $R_p$ is the maximum communication range of protocol $p$ (300, 500, and 1000~m for DSRC, C-V2X, and 5G-V2X; Table~\ref{tab:params}), $N_\mathrm{loc}$ is the number of vehicles within 300~m of the receiver, $L$ is the link latency in ms (Eq.~\eqref{eq:lat}), and $P_\mathrm{rx}$ is the reception probability of Eq.~\eqref{eq:prx}. Here $v_r$ is the congestion term, $d_s$ the spatial margin $1-d/R_p$ to the edge of the communication range, $l_d$ the latency term with 50~ms as the normalizing delay, and $d_f$ the modeled delivery probability. The weights give delay and delivery more influence than congestion and distance because they determine how usable a link is; the sensitivity of the results to this choice is reported in Section~\ref{sec:relay}. A higher score marks a more stable candidate relay.
-
+ 
+ 
 \section{Experimental Setup}
+ 
 \subsection{Scenarios}
-Table~\ref{tab:scenarios} summarizes the three scenarios. The \emph{urban grid} is an $8\times8$ grid of 150~m blocks with 50~km/h roads and priority-controlled junctions. The \emph{mixed urban--highway} scenario joins a $5\times5$ urban grid to a 3~km two-lane-per-direction highway (108~km/h) by single-lane ramps, so that vehicles transition between dense urban and fast highway traffic. The \emph{Vile Parle} scenario is an OpenStreetMap extract of the Vile Parle area of Mumbai~\cite{osm} converted with SUMO's netconvert, including its 19 signalized junctions.
+Table~\ref{tab:scenarios} summarizes the three scenarios. The \emph{urban grid} has $8\times8$ junctions spaced 150~m apart (1050~m $\times$ 1050~m), with 50~km/h roads and priority-controlled junctions. The \emph{mixed urban--highway} scenario joins a grid of $5\times5$ junctions to a 3~km two-lane-per-direction highway (108~km/h) by single-lane ramps, so that vehicles transition between dense urban and fast highway traffic. The \emph{Vile Parle} scenario is an OpenStreetMap extract of the Vile Parle area of Mumbai~\cite{osm} converted with SUMO's netconvert, including 19 traffic-signal programs (28 signalized junction nodes in the network file).
 
 \input{tab_scenarios.tex}
 
+
 \subsection{Traffic, Seeds, and Conditions}
-Demand is generated with SUMO's randomTrips tool: one passenger-car trip is inserted every 2, 1, or 0.5~s during the first 200~s (low, medium, and high density), with a minimum trip length of 300~m. Each run simulates 300~s with a 0.1~s step; vehicle states are sampled through TraCI once per second, and the first 60~s are discarded so that only a populated network is evaluated ($T=240$~s). Every scenario--density setting is run with \nSeeds{} seeds (seed $=1,\dots,\nSeeds$), which change the demand and the random draws. Results are reported as mean $\pm$ 95\% confidence interval (Student's $t$) over seeds. The same mobility trace is evaluated for the three protocols and the three weather conditions (clear, rain, fog).
+Demand is generated with SUMO's randomTrips tool: one passenger-car trip is inserted every 2, 1, or 0.5~s during the first 200~s (low, medium, and high density), with a minimum trip length of 300~m (randomTrips fringe factor 1, 10, and 5 for the urban, mixed, and Vile Parle networks). Each run simulates 300~s with a 0.1~s step; vehicle states are sampled through TraCI once per second, and the first 60~s are discarded so that only a populated network is evaluated ($T=240$~s). Goodput divides by the number of evaluated snapshots, which is 240 in every run except some low-density urban runs (236 to 240), where the network empties before the end. Every scenario--density setting is run with \nSeeds{} seeds (seed $=1,\dots,\nSeeds$), which change the demand and the random draws. Results are reported as mean $\pm$ 95\% confidence interval (Student's $t$) over seeds. The same mobility trace is evaluated for the three protocols and the three weather conditions (clear, rain, fog).
 
 \subsection{Relay-Selection Experiment}
 \label{sec:relaysetup}
-To evaluate the stability-aware component, source--destination pairs separated by 300--550~m (beyond the common link range) are sampled at every snapshot, and a single relay is chosen among vehicles within 300~m of both endpoints. Four selection rules are compared: \emph{random}; \emph{greedy-geographic}, which picks the candidate closest to the destination; \emph{stability-aware}, which picks the candidate with the highest bottleneck score $\min\{\mathrm{Score}_{sk},\mathrm{Score}_{kt}\}$; and an \emph{oracle} that maximizes the expected delivery, which bounds the achievable gain. The reported outcome is the expected end-to-end delivery probability $P_{sk}P_{kt}$ of the chosen relay, averaged over pairs that have at least one candidate.
-
+To evaluate the stability-aware component, source--destination pairs separated by 300--550~m (beyond the common link range) are sampled at every snapshot, and a single relay is chosen among vehicles within 300~m of both endpoints. At most 40 such pairs are sampled per snapshot. Four selection rules are compared: \emph{random}; \emph{greedy-geographic}, which picks the candidate closest to the destination; \emph{stability-aware}, which picks the candidate with the highest bottleneck score $\min\{\mathrm{Score}_{sk},\mathrm{Score}_{kt}\}$; and an \emph{oracle} that maximizes the expected delivery, which bounds the achievable gain. The reported outcome is the expected end-to-end delivery probability $P_{sk}P_{kt}$ of the chosen relay, averaged over pairs that have at least one candidate.
+ 
+ 
 \section{Results and Discussion}
 \subsection{PDR Definition and Absolute Level}
 \label{sec:pdrlevel}
 Table~\ref{tab:pdrdef} shows why the definition of PDR matters. If sender--receiver pairs are drawn uniformly over the whole map, only \covVMedDsrc, \covVMedCvx, and \covVMedGv\% of the pairs in Vile Parle are within range for DSRC, C-V2X, and 5G-V2X, and every out-of-range pair counts as a loss. The resulting pair-based PDR (\pairVMedDsrc, \pairVMedCvx, and \pairVMedGv\%) mainly measures geometry, not link quality. We therefore evaluate PDR on neighbor links only. Even then the absolute PDR is moderate (Fig.~\ref{fig:pdrdist}), because the 150~dB normalization in Eq.~\eqref{eq:sig} bounds $S$: at 10~m with no obstruction, $S$ is only \sigTenDsrc{} for the 5.9~GHz links and \sigTenGv{} for 5G-V2X, so that an isolated link reaches at most \ceilDsrc, \ceilCvx, and \ceilGv\% reception probability for DSRC, C-V2X, and 5G-V2X. The PDR values in this paper should therefore be read as a relative link-quality index of the model, useful for comparing technologies under identical conditions, and not as predictions of field PDR; they are not claimed to indicate reliable service.
 
 \input{tab_pdrdef.tex}
+
 
 \begin{figure}[t]
 \centering
@@ -268,6 +277,7 @@ Table~\ref{tab:pdrdef} shows why the definition of PDR matters. If sender--recei
 Table~\ref{tab:main} reports the three scenarios at medium density. Over all nine scenario--density settings, PDR$_{300}$ ranges from \pdrMinGv{} to \pdrMaxGv\% for 5G-V2X, \pdrMinCvx{} to \pdrMaxCvx\% for C-V2X, and \pdrMinDsrc{} to \pdrMaxDsrc\% for DSRC, so the ordering 5G-V2X $>$ C-V2X $>$ DSRC is stable and exceeds the confidence intervals. Latency is nearly deterministic (confidence intervals below 0.05~ms) because it is dominated by the protocol processing delay: \latMinGv--\latMaxGv~ms for 5G-V2X, \latMinDsrc--\latMaxDsrc~ms for DSRC, and \latMinCvx--\latMaxCvx~ms for C-V2X, which carries the largest assumed processing delay (Table~\ref{tab:params}); low latency is the main promise of 5G-V2X~\cite{pawar2024,barbosa2024}. Goodput follows range and density; in Vile Parle at medium density it is \gpVMedGv{}, \gpVMedCvx{}, and \gpVMedDsrc~Mbit/s for 5G-V2X, C-V2X, and DSRC. The stability score ranks 5G-V2X first, but places DSRC above C-V2X, unlike PDR, because its latency term penalizes the 20~ms processing delay of C-V2X. These orderings depend in part on the assumed constants of Table~\ref{tab:params}; the contribution of the framework is the controlled comparison under identical mobility, not the calibration of those constants.
 
 \input{tab_main.tex}
+
 
 \subsection{Impact of Traffic Density}
 Fig.~\ref{fig:density} shows PDR$_{300}$ against the mean number of active vehicles. Higher density increases the number of neighbors and goodput but also increases contention and obstruction in the model. DSRC, which has no density enhancement, loses \dropUDsrc, \dropMDsrc, and \dropVDsrc{} percentage points between low and high density in the urban, mixed, and Vile Parle scenarios. 5G-V2X loses \dropUGv, \dropMGv, and \dropVGv{} points. C-V2X changes by less than 0.6 points because its density-dependent scheduling term $B_p$ offsets the density penalty $F_n$; this is an assumption of the model rather than a measured property of LTE-V2X. The mixed scenario degrades most, consistent with highway traffic concentrating vehicles along a narrow corridor, which raises both the local count (\nlocMHigh{} vehicles within 300~m at high density, against \nlocMMed{} at medium density) and the obstruction count (\nobsMHigh{} against \nobsMMed{} vehicles per 300~m link). Goodput rises strongly with density; for Vile Parle, DSRC goodput grows from \gpVLowDsrc{} to \gpVHighDsrc~Mbit/s from low to high density.
@@ -284,6 +294,7 @@ Adverse weather is known to degrade vehicular communication and routing~\cite{sa
 
 \input{tab_weather.tex}
 
+
 \subsection{Stability-Aware Relay Selection}
 \label{sec:relay}
 Fig.~\ref{fig:relay} compares relay selection rules in terms of the end-to-end delivery gain over random selection. A relay candidate exists for \connMin--\connMax\% of the sampled pairs depending on scenario and density. Stability-aware selection improves delivery over random selection by \gainMinDsrc--\gainMaxDsrc\% for DSRC, \gainMinCvx--\gainMaxCvx\% for C-V2X, and \gainMinGv--\gainMaxGv\% for 5G-V2X across the nine settings, and over greedy-geographic selection by \gainGMinDsrc--\gainGMaxDsrc, \gainGMinCvx--\gainGMaxCvx, and \gainGMinGv--\gainGMaxGv\%. The gain grows with density and is largest for 5G-V2X, where stability-aware selection captures \shareVMedGv\% of the gain of the oracle at medium density in Vile Parle. Absolute end-to-end delivery stays low (about \relstabilitydefaultVMedDsrc{} to \relstabilitydefaultVMedGv\% in Vile Parle at medium density) because both hops inherit the link-level PDR of Section~\ref{sec:pdrlevel}. Replacing the default weights by equal weights or by delivery-heavy weights $(0.1,0.1,0.2,0.6)$ changes the gain over random selection of 5G-V2X in Vile Parle (medium density) from \gainRandVMedGv{} to \gainequalRandVMedGv{} and \gaindeliveryheavyRandVMedGv\%, so the benefit is robust to the weights but their choice matters. Because the score shares its delivery and distance variables with the channel model, this evaluation demonstrates the component's behavior within the model and is not independent evidence of gains in a real network.
@@ -294,7 +305,7 @@ Fig.~\ref{fig:relay} compares relay selection rules in terms of the end-to-end d
 \caption{End-to-end delivery gain of stability-aware relay selection over random selection in (a) the urban grid and (b) Vile Parle. Error bars show the 95\% confidence interval over seeds.}
 \label{fig:relay}
 \end{figure}
-
+ 
 \section{Limitations}
 \label{sec:limits}
 Several limitations apply. First, the communication model is a probabilistic abstraction and does not simulate the packet-level physical and MAC layers; frameworks such as ns-3, OMNeT++, and Veins provide higher fidelity~\cite{loor2024,morales2024,sommer2011}, so the absolute PDR and latency values should not be transferred to deployments, and only the comparison between technologies under identical conditions is supported. Second, the reliability constants, ranges, and processing delays (Table~\ref{tab:params}) are assumptions; the ordering of the technologies partly follows from them. Third, line-of-sight blockage by buildings is not modeled, and weather enters only as ITU-R attenuation. Fourth, beacons are sampled at 1~Hz from the mobility trace. Fifth, the relay evaluation covers one relay hop and is not compared with complete routing protocols such as GPSR~\cite{karp2000}. These limitations, together with the findings above, indicate where the model should be extended.
